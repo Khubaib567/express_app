@@ -1,28 +1,41 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv')
+const { MongoClient, ServerApiVersion } = require('mongodb');
+
 
 // Declare the environment variable
 dotenv.config() 
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGO, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
+const uri = process.env.MONGO_NODE
+
+
+// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+const client = new MongoClient(uri, {
+    serverApi: {
+      version: ServerApiVersion.v1,
+      strict: true,
+      deprecationErrors: true,
+    }
+  });
 
 // Create Express app
 const app = express();
 
 // Define a route
-app.get('/', (req, res) => {
-  // Check MongoDB connection status
-  const connected = mongoose.connection.readyState === 1;
-  
-  // Prepare response based on connection status
-  const message = connected ? 'MongoDB connected' : 'MongoDB not connected';
-  
-  // Send the response
-  res.send(message);
+app.get('/', async (req, res) => {
+    try {
+        // Connect the client to the server	(optional starting in v4.7)
+        await client.connect();
+        // Send a ping to confirm a successful connection
+        await client.db("admin").command({ ping: 1 });
+        console.log("Pinged your deployment. You successfully connected to MongoDB!");
+        res.send("You successfully connected to MongoDB!");
+
+      } finally {
+        // Ensures that the client will close when you finish/error
+        await client.close();
+      }
 });
 
 // Start the server
